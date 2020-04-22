@@ -27,12 +27,6 @@ def gen_first_solution(n, dist):
     return solution
 
 
-# def gen_first_solution(n, dist):
-#     q = [0] + list(np.random.permutation([i for i in range(1, n)])) + [0]
-#     print(q, find_distance(q, dist))
-#     return q
-
-
 def find_distance(s, dist):
     return sum([dist[s[i]][s[i + 1]] for i in range(len(s) - 1)])
 
@@ -97,14 +91,15 @@ def solve_tsp(t, n, dist):
 
 
 def run():
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 4:
         raise Exception('Incorrect number of parameters')
-    file_in, file_out = sys.argv[1], sys.argv[2]
+    file_in, file_out, file_err = sys.argv[1], sys.argv[2], sys.argv[3]
     t, n, dist_matrix = read_data(file_in)
     solution, distance = solve_tsp(t, n, dist_matrix)
     with open(file_out, 'w') as f:
         f.write(str(distance))
-    print(list(map(lambda x: x + 1, solution)), file=sys.stderr)
+    with open(file_err, 'w') as f:
+        f.write(' '.join(list(map(lambda x: str(x + 1), solution))))
 
 
 run()

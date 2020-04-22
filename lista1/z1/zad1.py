@@ -9,7 +9,7 @@ import time
 from math import sin, cos, sqrt
 
 start_x = 0.9
-a = 0.0001
+a = 0.00005
 
 
 def happycat(x):
@@ -64,7 +64,7 @@ def find_minimum(t, b):
 
 
 def run():
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 3 and len(sys.argv) != 4:
         raise Exception('incorrect number of parameters')
     file_in = sys.argv[1]
     file_out = sys.argv[2]
@@ -72,7 +72,6 @@ def run():
     x, fx = find_minimum(t, b)
     with open(file_out, 'w') as f:
         f.write(f'{x[0]} {x[1]} {x[2]} {x[3]} {fx}')
-    print(x, fx)
 
 
 run()

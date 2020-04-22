@@ -1,1 +1,0 @@
-python3 zad1.py "$1" "$2"
