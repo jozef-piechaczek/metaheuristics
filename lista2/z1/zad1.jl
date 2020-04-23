@@ -6,9 +6,10 @@ amplitude = domain[2] - domain[1]
 neighbour_mdf = 1
 starting_point = map(x -> amplitude * rand() - amplitude/2, (0,0,0,0))
 # starting_point = (-1000, 50, 210, 100)
-temp_reduction = 0.6
-iter_to_red = 1e4
-temp_init = 1e2
+temp_reduction = 0.8
+iter_to_red = 7e3
+temp_init = 1e5
+c = 1
 
 "Calculate cost of solution"
 function cost(x)
@@ -41,7 +42,7 @@ function annealing(t)
             if cost(n_state) < cost(c_state)
                 a += 1
                 c_state = n_state
-            elseif rand() < e^((cost(c_state) - cost(n_state)) / c_temp)
+            elseif rand() < (1 / (1 + (e ^ (c * (cost(n_state) - cost(c_state)) / c_temp ))))
                 b += 1
                 c_state = n_state
             end
