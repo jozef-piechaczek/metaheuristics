@@ -1,17 +1,9 @@
-using LinearAlgebra
-
 vals = [0, 32, 64, 128, 160, 192, 223, 255]
 
 ##### Utils #####
 
 function read_args()
-
-    #TODO: DELETE
-    del_args = ["/home/dzazef/repos/metaheuristics/lista2/z2/l2z2b.txt",
-    "/home/dzazef/repos/metaheuristics/lista2/z2/l2z2b_out.txt",
-    "/home/dzazef/repos/metaheuristics/lista2/z2/l2z2b_err.txt"]
-
-    args = map(x -> string(x), del_args)
+    args = map(x -> string(x), ARGS)
     file_in = args[1]
     file_out = args[2]
     file_err = args[3]
@@ -29,7 +21,7 @@ function read_matrix(file_in)
     t, n, m, k = params
     matrix = Array{Int}(undef, n, m)
     for i = 1:length(lines)
-        line = split(strip(lines[i]), " ")
+        line = filter(x -> length(strip(x)) > 0, split(strip(lines[i]), " "))
         for j = 1:length(line)
             matrix[i,j] = parse(Int, line[j])
         end
@@ -241,9 +233,6 @@ function annealing(t, n, m, k, mx, t_red, it_to_red, t_init)
         end
         c_temp *= t_red
     end
-    println()
-    println(c_temp)
-    println(cost(s_state), " -> ", cost(c_state))
     return cost(c_state), c_state
 end
 
@@ -254,29 +243,8 @@ function main()
 
     file_in, file_out, file_err = read_args()
     t, n, m, k, mx = read_matrix(file_in)
-    length, new_mx = annealing(300, n, m, k, mx, t_red, it_to_red, t_init)
+    length, new_mx = annealing(t, n, m, k, mx, t_red, it_to_red, t_init)
     write_matrix(file_out, file_err, length, new_mx)
 end
 
-# m, mm = start_matrix(7, 7, 3)
-# println(m)
-# resize(m, mm, 2, 2, "U")
-# println(m)
-# resize(m, mm, 2, 1, "U")
-# println(m)
 main()
-# file_in, file_out, file_err = read_args()
-# t, n, m, k, mx = read_matrix(file_in)
-# write_matrix(file_out, file_err, 10, mx)
-
-# for i in 1:50
-#     m1, m1_map = start_matrix(11,11,2)
-#     m1a, m1a_map = change_intensivity(deepcopy(m1), m1_map)
-#     println()
-# end
-# println(m1_map)
-# println(m1)
-# m2, m2_map = start_matrix(7,7,2)
-# println(m2)
-# println(m2_map)
-# println(dist(7, 7, m1, m2))

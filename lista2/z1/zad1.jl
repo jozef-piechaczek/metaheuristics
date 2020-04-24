@@ -1,15 +1,3 @@
-println("----RUN----")
-
-e = MathConstants.e
-domain = (-100.0, 100.0)
-amplitude = domain[2] - domain[1]
-neighbour_mdf = 1
-starting_point = map(x -> amplitude * rand() - amplitude/2, (0,0,0,0))
-# starting_point = (-1000, 50, 210, 100)
-temp_reduction = 0.8
-iter_to_red = 7e3
-temp_init = 1e5
-c = 1
 
 "Calculate cost of solution"
 function cost(x)
@@ -19,44 +7,58 @@ function cost(x)
 end
 
 "Find next solution in neighbourhood"
-function neighbour(x)
-    next(xi) = max(min((xi + randn() / neighbour_mdf), domain[2]), domain[1])
+function neighbour(x, domain, n_mdf)
+    next(xi) = max(min((xi + randn() / n_mdf), domain[2]), domain[1])
     return map(next, x)
 end
 
 "Simulated annealing"
-function annealing(t)
-    a = 0
-    b = 0
-    c = 0
-    c_state = starting_point
+function annealing(t, start_point, n_mdf, t_red, it_to_red, t_init)
+    e = MathConstants.e
+    domain = (-100.0, 100.0)
+    amplitude = domain[2] - domain[1]
+
+    c_state = start_point
     c_cost = cost(c_state)
-    c_temp = temp_init
+    c_temp = t_init
     start_time = time_ns()
     end_time = start_time + 1e9 * t
     while time_ns() < end_time
-        # println(c_state)
-        for i = 1:iter_to_red
-            c += 1
-            n_state = neighbour(c_state)
+        for i = 1:it_to_red
+            n_state = neighbour(c_state, domain, n_mdf)
             if cost(n_state) < cost(c_state)
-                a += 1
                 c_state = n_state
-            elseif rand() < (1 / (1 + (e ^ (c * (cost(n_state) - cost(c_state)) / c_temp ))))
-                b += 1
+            elseif rand() < e ^ (-((cost(n_state) - cost(c_state)) / c_temp))
                 c_state = n_state
             end
         end
-        c_temp = c_temp * temp_reduction
+        c_temp = c_temp * t_red
     end
-    println()
-    println(a)
-    println(b)
-    println(c)
-    return c_state, c_temp
+    return c_state
 end
 
-result, temp = annealing(1)
-println(result)
-println(cost(starting_point), " -> ", cost(result))
-print(temp)
+"Read params from file, calculate minimum, and save to file"
+function main()
+    n_mdf = 3.55
+    t_red = 0.72
+    it_to_red = 4370.0
+    t_init = 73750.0
+
+    args = map(x -> string(x), ARGS)
+    file_in = args[1]
+    file_out = args[2]
+    open(file_in) do file
+        params = split(readline(file), " ")
+    end
+    params = map(x -> parse(Float64, x), params)
+
+    f_result = annealing(params[1], (params[2], params[3], params[4], params[5]),
+        n_mdf, t_red, it_to_red, t_init)
+    f_cost = cost(f_result)
+
+    open(file_out, "w") do file
+        write(file, "$(f_result[1]) $(f_result[2]) $(f_result[3]) $(f_result[4]) $f_cost")
+    end
+end
+
+main()
