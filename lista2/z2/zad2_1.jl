@@ -3,7 +3,12 @@ using LinearAlgebra
 vals = [0, 32, 64, 128, 160, 192, 223, 255]
 
 function read_args()
-    args = map(x -> string(x), ARGS)
+
+    del_args = ["/home/dzazef/repos/metaheuristics/lista2/z2/l2z2a.txt",
+    "/home/dzazef/repos/metaheuristics/lista2/z2/l2z2a_out.txt",
+    "/home/dzazef/repos/metaheuristics/lista2/z2/l2z2a_err.txt"]
+
+    args = map(x -> string(x), del_args)
     file_in = args[1]
     file_out = args[2]
     file_err = args[3]
@@ -18,14 +23,13 @@ function read_matrix(file_in)
         lines = readlines(file)
     end
     params = map(x -> parse(Int, x), f_line)
-    println(params)
     t, n, m, k = params
     for i = 1:length(lines)
         if !(isempty(strip(lines[i])))
             matrix = append!(matrix, [map(l -> parse(Int, l), split(lines[i], " "))])
         end
     end
-    return t, n, m, k, matrix
+    return t, n, m, k, hcat(matrix...)
 end
 
 function write_matrix(file_out, file_err, length, matrix)
@@ -33,8 +37,13 @@ function write_matrix(file_out, file_err, length, matrix)
         write(file, "$(length)\n")
     end
     open(file_err, "w") do file
-        map(row -> write(file, string(reduce((x, y) -> "$x $y", row), "\n")),
-            matrix)
+        n, m = size(matrix)
+        for i = 1:n
+            for j = 1:m
+                write(file, "$(matrix[i,j]) ")
+            end
+            write(file, "\n")
+        end
     end
 end
 
@@ -51,7 +60,7 @@ end
 
 function start_matrix(n, m, k)
     rand_val() = vals[rand(1:length(vals))]
-    mx = Matrix{Int}(undef, n, m)
+    mx = Array{Int}(undef, n, m)
     ib_max = (div(n, k))
     jb_max = (div(m, k))
     mx_map = Array{Array{Int}}(undef, ib_max, jb_max) # info about blocks
@@ -118,47 +127,62 @@ function swap_blocks(mx, blocks)
 end
 
 function neighbour(mx, blocks)
-    if rand() < 0.5 mx, blocks = change_intensivity(mx, blocks) end
-    if rand() < 0.5 mx, blocks = resize_block(mx, blocks) end
-    if rand() < 0.5 mx, blocks = swap_blocks(mx, blocks) end
-    return mx, blocks
+    mx1 = deepcopy(mx)
+    mx1, blocks = change_intensivity(mx1, blocks)
+    # mx1, blocks = resize_block(mx1, blocks)
+    # mx1, blocks = swap_blocks(mx1, blocks)
+    return mx1, blocks
 end
 
 function annealing(t, n, m, k, mx, t_red, it_to_red, t_init)
-    cost(mx2) = dist(n, m, mx, mx2)
+    cost(x) = dist(n, m, mx, x)
 
     c_state, c_block = start_matrix(n, m, k)
+    s_state = deepcopy(c_state)
     c_cost = cost(c_state)
     c_temp = t_init
     start_time = time_ns()
     end_time = start_time + 1e9 * t
     while time_ns() < end_time
         for i = 1:it_to_red
-            n_state = neighbour(c_state)
+            n_state, n_block = neighbour(c_state, c_block)
             if cost(n_state) < cost(c_state)
-                c_state = n_state
-            elseif rand() < e ^ (-((cost(n_state) - cost(c_state)) / c_temp))
-                c_state = n_state
+                c_state, c_block = n_state, n_block
+            elseif rand() < (MathConstants.e ^
+                    (-((cost(n_state) - cost(c_state)) / c_temp)))
+                c_state, c_block = n_state, n_block
             end
         end
         c_temp *= t_red
     end
-    println(cost(mx), " -> ", cost(c_state))
+    println()
+    println(c_temp)
+    println(cost(s_state), " -> ", cost(c_state))
     return cost(c_state), c_state
 end
 
 function main()
+    t_red = 0.99
+    it_to_red = 4370.0
+    t_init = 73750.0
+
     file_in, file_out, file_err = read_args()
     t, n, m, k, mx = read_matrix(file_in)
-    length, new_mx = annealing(t, n, m, k, mx)
+    length, new_mx = annealing(15, n, m, k, mx, t_red, it_to_red, t_init)
     write_matrix(file_out, file_err, length, new_mx)
 end
 
-for i in 1:50
-    m1, m1_map = start_matrix(11,11,2)
-    m1a, m1a_map = change_intensivity(deepcopy(m1), m1_map)
-    println()
-end
+
+main()
+# file_in, file_out, file_err = read_args()
+# t, n, m, k, mx = read_matrix(file_in)
+# write_matrix(file_out, file_err, 10, mx)
+
+# for i in 1:50
+#     m1, m1_map = start_matrix(11,11,2)
+#     m1a, m1a_map = change_intensivity(deepcopy(m1), m1_map)
+#     println()
+# end
 # println(m1_map)
 # println(m1)
 # m2, m2_map = start_matrix(7,7,2)
