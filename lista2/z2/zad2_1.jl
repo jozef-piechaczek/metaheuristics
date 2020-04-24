@@ -2,11 +2,14 @@ using LinearAlgebra
 
 vals = [0, 32, 64, 128, 160, 192, 223, 255]
 
+##### Utils #####
+
 function read_args()
 
-    del_args = ["/home/dzazef/repos/metaheuristics/lista2/z2/l2z2a.txt",
-    "/home/dzazef/repos/metaheuristics/lista2/z2/l2z2a_out.txt",
-    "/home/dzazef/repos/metaheuristics/lista2/z2/l2z2a_err.txt"]
+    #TODO: DELETE
+    del_args = ["/home/dzazef/repos/metaheuristics/lista2/z2/l2z2b.txt",
+    "/home/dzazef/repos/metaheuristics/lista2/z2/l2z2b_out.txt",
+    "/home/dzazef/repos/metaheuristics/lista2/z2/l2z2b_err.txt"]
 
     args = map(x -> string(x), del_args)
     file_in = args[1]
@@ -24,12 +27,14 @@ function read_matrix(file_in)
     end
     params = map(x -> parse(Int, x), f_line)
     t, n, m, k = params
+    matrix = Array{Int}(undef, n, m)
     for i = 1:length(lines)
-        if !(isempty(strip(lines[i])))
-            matrix = append!(matrix, [map(l -> parse(Int, l), split(lines[i], " "))])
+        line = split(strip(lines[i]), " ")
+        for j = 1:length(line)
+            matrix[i,j] = parse(Int, line[j])
         end
     end
-    return t, n, m, k, hcat(matrix...)
+    return t, n, m, k, matrix
 end
 
 function write_matrix(file_out, file_err, length, matrix)
@@ -46,6 +51,8 @@ function write_matrix(file_out, file_err, length, matrix)
         end
     end
 end
+
+##### Begin main code #####
 
 function dist(n, m, mx1, mx2)
     result = 0
@@ -83,6 +90,8 @@ function start_matrix(n, m, k)
     return mx, mx_map
 end
 
+##### Changing intensivity #####
+
 function get_block_starti(blocks, bi, bj)
     start_i = 1
     for i in 1:(bi - 1)
@@ -98,7 +107,6 @@ function get_block_startj(blocks, bi, bj)
     end
     return start_j
 end
-
 
 function change_intensivity(mx, blocks)
     max_i, max_j = size(blocks)
@@ -116,21 +124,99 @@ function change_intensivity(mx, blocks)
     return mx, blocks
 end
 
-function resize_block(mx, blocks)
+##### Resizing block #####
 
+function find_big_blocks(blocks, k)
+    possible_blocks = []
+    bn, bm = size(blocks)
+    for i = 1:bn
+        for j = 1:bm
+            if blocks[i,j][1] > k || blocks[i,j][2] > k
+                append!(possible_blocks, [(i, j)])
+            end
+        end
+    end
+    return possible_blocks
+end
+
+function find_possible_neighbours(i, j, blocks, k)
+    neighbours = []
+    n, m = size(blocks)
+    if blocks[i,j][1] > k # check verticall
+        if (i > 0 && blocks[i,j][2] == blocks[(i-1),j][2]
+                && get_block_startj(blocks, i, j) == get_block_startj(blocks, i-1, j))
+            append!(neighbours, "U")
+        end
+        if (i < n && blocks[i,j][2] == blocks[(i+1),j][2]
+                && get_block_startj(blocks, i, j) == get_block_startj(blocks, i+1, j))
+            append!(neighbours, "D")
+        end
+    end
+    if blocks[i,j][2] > k
+        if (j > 0 && blocks[i,j][1] == blocks[i,j-1][1]
+                && get_block_starti(blocks, i, j) == get_block_starti(blocks, i, j-1))
+            append!(neighbours, "L")
+        end
+        if (j < m && blocks[i,j][1] == blocks[i,j+1][1]
+                && get_block_starti(blocks, i, j) == get_block_starti(blocks, i, j+1))
+            append!(neighbours, "R")
+        end
+    end
+    return neighbours
+end
+
+function resize(mx, blocks, i0, j0, nb)
+    i = get_block_starti(blocks, i0, j0)
+    j = get_block_startj(blocks, i0, j0)
+    n1, m1 = blocks[i0,j0]
+    if nb == "U"
+        n2, m2 = blocks[(i0-1),j0]
+        for x = j:(j + m1 - 1)
+            mx[i,x] = mx[(i-1),x]
+        end
+        blocks[i0,j0], blocks[(i0-1),j0] = [(n1-1),m1], [(n2+1),m2]
+    elseif nb == "D"
+        n2, m2 = blocks[(i0+1),j0]
+        i = (i + n1 - 1)
+        for x = j:(j + m1 - 1)
+            mx[i,x] = mx[(i+1),x]
+        end
+        blocks[i0,j0], blocks[(i0+1),j0] = [(n1-1),m1], [(n2+1),m2]
+    elseif nb == "L"
+        n2, m2 = blocks[i0,(j0-1)]
+        for x = i:(i + n1 - 1)
+            mx[x,j] = mx[x,(j-1)]
+        end
+        blocks[i0,j0], blocks[i0,(j0-1)] = [n1,(m1-1)], [n2,(m2+1)]
+    elseif nb == "R"
+        n2, m2 = blocks[i0,(j0+1)]
+        j = (j + m1 - 1)
+        for x = i:(i + n1 - 1)
+            mx[x,j] = mx[x,(j+1)]
+        end
+        blocks[i0,j0], blocks[i0,(j0+1)] = [n1,(m1-1)], [n2,(m2+1)]
+    end
+end
+
+function resize_block(mx, blocks, n, m, k)
+    possible_blocks = find_big_blocks(blocks, k)
+    if !isempty(possible_blocks)
+        chosen_i, chosen_j = possible_blocks[rand(1:length(possible_blocks))]
+        neighbours = find_possible_neighbours(chosen_i, chosen_j, blocks, k)
+        if !isempty(neighbours)
+            chosen_nb = neighbours[rand(1:length(neighbours))]
+            resize(mx, blocks, chosen_i, chosen_j, chosen_nb)
+        end
+    end
     return mx, blocks
 end
 
-function swap_blocks(mx, blocks)
+##### Main code #####
 
-    return mx, blocks
-end
-
-function neighbour(mx, blocks)
+function neighbour(mx, blocks, n, m, k)
     mx1 = deepcopy(mx)
     mx1, blocks = change_intensivity(mx1, blocks)
-    # mx1, blocks = resize_block(mx1, blocks)
-    # mx1, blocks = swap_blocks(mx1, blocks)
+    # mx1, blocks = resize_block(mx1, blocks, n, m, k)
     return mx1, blocks
 end
 
@@ -145,7 +231,7 @@ function annealing(t, n, m, k, mx, t_red, it_to_red, t_init)
     end_time = start_time + 1e9 * t
     while time_ns() < end_time
         for i = 1:it_to_red
-            n_state, n_block = neighbour(c_state, c_block)
+            n_state, n_block = neighbour(c_state, c_block, n, m, k)
             if cost(n_state) < cost(c_state)
                 c_state, c_block = n_state, n_block
             elseif rand() < (MathConstants.e ^
@@ -162,17 +248,22 @@ function annealing(t, n, m, k, mx, t_red, it_to_red, t_init)
 end
 
 function main()
-    t_red = 0.99
+    t_red = 0.72
     it_to_red = 4370.0
     t_init = 73750.0
 
     file_in, file_out, file_err = read_args()
     t, n, m, k, mx = read_matrix(file_in)
-    length, new_mx = annealing(15, n, m, k, mx, t_red, it_to_red, t_init)
+    length, new_mx = annealing(300, n, m, k, mx, t_red, it_to_red, t_init)
     write_matrix(file_out, file_err, length, new_mx)
 end
 
-
+# m, mm = start_matrix(7, 7, 3)
+# println(m)
+# resize(m, mm, 2, 2, "U")
+# println(m)
+# resize(m, mm, 2, 1, "U")
+# println(m)
 main()
 # file_in, file_out, file_err = read_args()
 # t, n, m, k, mx = read_matrix(file_in)
