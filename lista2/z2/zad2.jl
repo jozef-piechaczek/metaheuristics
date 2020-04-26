@@ -2,6 +2,7 @@ vals = [0, 32, 64, 128, 160, 192, 223, 255]
 
 ##### Utils #####
 
+"Read arguments"
 function read_args()
     args = map(x -> string(x), ARGS)
     file_in = args[1]
@@ -10,6 +11,7 @@ function read_args()
     return file_in, file_out, file_err
 end
 
+"Read matrix from file"
 function read_matrix(file_in)
     matrix, f_line, lines = [], [], []
     f_line = []
@@ -29,6 +31,7 @@ function read_matrix(file_in)
     return t, n, m, k, matrix
 end
 
+"Write matrix to file"
 function write_matrix(file_out, file_err, length, matrix)
     open(file_out, "w") do file
         write(file, "$(length)\n")
@@ -46,6 +49,7 @@ end
 
 ##### Begin main code #####
 
+"Find distance between matrices"
 function dist(n, m, mx1, mx2)
     result = 0
     for i = 1:n
@@ -57,6 +61,7 @@ function dist(n, m, mx1, mx2)
     return result
 end
 
+"Generate start matrix"
 function start_matrix(n, m, k)
     rand_val() = vals[rand(1:length(vals))]
     mx = Array{Int}(undef, n, m)
@@ -84,6 +89,7 @@ end
 
 ##### Changing intensivity #####
 
+"Get first row index of given block"
 function get_block_starti(blocks, bi, bj)
     start_i = 1
     for i in 1:(bi - 1)
@@ -92,6 +98,7 @@ function get_block_starti(blocks, bi, bj)
     return start_i
 end
 
+"Get first column index of given block"
 function get_block_startj(blocks, bi, bj)
     start_j = 1
     for j in 1:(bj - 1)
@@ -100,6 +107,7 @@ function get_block_startj(blocks, bi, bj)
     return start_j
 end
 
+"Change intensibity of random block"
 function change_intensivity(mx, blocks)
     max_i, max_j = size(blocks)
     block_i = rand(1:max_i)
@@ -118,6 +126,7 @@ end
 
 ##### Resizing block #####
 
+"Find blocks bigger than minimal size"
 function find_big_blocks(blocks, k)
     possible_blocks = []
     bn, bm = size(blocks)
@@ -131,6 +140,7 @@ function find_big_blocks(blocks, k)
     return possible_blocks
 end
 
+"Find neighbours that can be resized"
 function find_possible_neighbours(i, j, blocks, k)
     neighbours = []
     n, m = size(blocks)
@@ -157,6 +167,7 @@ function find_possible_neighbours(i, j, blocks, k)
     return neighbours
 end
 
+"Resize block"
 function resize(mx, blocks, i0, j0, nb)
     i = get_block_starti(blocks, i0, j0)
     j = get_block_startj(blocks, i0, j0)
@@ -190,6 +201,7 @@ function resize(mx, blocks, i0, j0, nb)
     end
 end
 
+"Find resizable block and resize it"
 function resize_block(mx, blocks, n, m, k)
     possible_blocks = find_big_blocks(blocks, k)
     if !isempty(possible_blocks)
@@ -205,13 +217,15 @@ end
 
 ##### Main code #####
 
+"Find neighbour"
 function neighbour(mx, blocks, n, m, k)
     mx1 = deepcopy(mx)
     mx1, blocks = change_intensivity(mx1, blocks)
-    # mx1, blocks = resize_block(mx1, blocks, n, m, k)
+    mx1, blocks = resize_block(mx1, blocks, n, m, k)
     return mx1, blocks
 end
 
+"Simulate annealing"
 function annealing(t, n, m, k, mx, t_red, it_to_red, t_init)
     cost(x) = dist(n, m, mx, x)
 
@@ -236,6 +250,7 @@ function annealing(t, n, m, k, mx, t_red, it_to_red, t_init)
     return cost(c_state), c_state
 end
 
+"Main function"
 function main()
     t_red = 0.72
     it_to_red = 4370.0
