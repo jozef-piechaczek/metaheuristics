@@ -1,14 +1,7 @@
-include("/home/dzazef/repos/metaheuristics/lista2/z3/agent.jl") #TODO
+include("./agent.jl")
 using .Agent
 
 function read_args()
-    #TODO: DELETE
-    args1 = [
-        "/home/dzazef/repos/metaheuristics/lista2/z3/l2z3b.txt",
-        "/home/dzazef/repos/metaheuristics/lista2/z3/l2z3b_out.txt",
-        "/home/dzazef/repos/metaheuristics/lista2/z3/l2z3b_err.txt"
-    ]
-    ###################
     args = map(string, ARGS)
     file_in = args[1]
     file_out = args[2]

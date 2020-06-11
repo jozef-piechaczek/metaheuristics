@@ -252,9 +252,9 @@ end
 
 "Main function"
 function main()
-    t_red = 0.72
-    it_to_red = 4370.0
-    t_init = 73750.0
+    t_red = 0.75
+    it_to_red = 5000.0
+    t_init = 100000.0
 
     file_in, file_out, file_err = read_args()
     t, n, m, k, mx = read_matrix(file_in)

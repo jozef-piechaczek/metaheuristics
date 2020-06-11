@@ -1,9 +1,9 @@
 
 g_domain     = (-5.0, 5.0)
-g_particle_c = 94
-g_brake_f    = 0.12162
-g_global_f   = 0.23792
-g_local_f    = 0.10136
+g_particle_c = 86
+g_brake_f    = 0.023030
+g_global_f   = 0.065025
+g_local_f    = 0.043933
 
 
 mutable struct ParticleStr
