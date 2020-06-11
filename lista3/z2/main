@@ -1,0 +1,2 @@
+#!/bin/bash
+julia zad2.jl "$1" "$2" "$3"
