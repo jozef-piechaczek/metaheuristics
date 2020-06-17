@@ -1,0 +1,293 @@
+\documentclass[11pt]{article}
+\linespread{1.1}
+\usepackage[utf8]{inputenc}
+\usepackage{polski}
+\usepackage{listing}
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage{multicol}
+\usepackage{graphicx}
+\usepackage[shortlabels]{enumitem}
+\usepackage{amssymb}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{cite}
+\usepackage{url}
+\usepackage{adjustbox}
+
+\usepackage{array}
+\newcolumntype{P}[1]{>{\centering\arraybackslash}p{#1}}
+
+\graphicspath{ {./images/} }
+\title{%
+  Problem kolorowania grafu dla algorytmów mrówkowych \\
+  \large Algorytmy metaheurystyczne 
+ }
+\floatname{algorithm}{Algorytm}
+\date{2020-06-13}
+\author{Józef Piechaczek 244761}
+
+\begin{document}
+
+\pagenumbering{gobble}
+\maketitle
+\newpage
+\pagenumbering{arabic}
+
+ \section{Algorytm mrówkowy}
+Algorytm mrówkowy to metaheurystyka populacyjna używana do rozwiązywania trudnych kombinatorycznych problemów optymalizacyjnych. Algorytm zainspirowany jest rzeczywistym zachowaniem mrówek szukających pożywienia. Mrówki początkowo poruszają się w sposób losowy. W momencie, gdy mrówka znajduje pożywienie, wraca ona do swojej kolonii, pozostawiając na ścieżce feromon - substancję, która ma sugerować innym mrówkom, że dana trasa prowadzi do pożywienia. W momencie, gdy feromon znajduje się już na ziemi, mrówki potrafią go wyczuć i preferują wybór ścieżki z większym natężeniem zapachu. Jeśli dana trasa była krótsza, natężenie feromonu na danym odcinku jest większe - wynika to z faktu, że mrówka pokonuje trasę w krótszym czasie. Feromon po pewnym czasie paruje - co jest zjawiskiem pozytywnym, gdyż pozwala na eksplorację innych miejsc. Ogólny algorytm mrówkowy można przedstawić w następujący sposób:
+\begin{algorithm} % enter the algorithm environment
+\caption{ACO}
+\label{alg1} % and a label for \ref{} commands later in the document
+\begin{algorithmic} % enter the algorithmic environment
+    \WHILE{not termination\_condition}
+    		\STATE generateSolution()
+    		\STATE deamonActions()
+    		\STATE updatePheromone()
+    \ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+%\begin{algorithm} % enter the algorithm environment
+%\caption{Algorytm mrówkowy}
+%\label{alg1} % and a label for \ref{} commands later in the document
+%\begin{algorithmic} % enter the algorithmic environment
+%    \REQUIRE $n, (a_{ij}), b_i$
+%    \STATE \{\textbf{Pętla 1}\}
+%    \FOR{$k=1$ \textbf{to} $n-1$}
+%    		\STATE \{\textbf{Pętla 2}\}
+%		\FOR{$i=k+1$ \textbf{to} $n$}
+%		\STATE $z \leftarrow a_{ik}/a_{kk}$
+%		\STATE $a_{ik} \leftarrow 0$
+%    			\STATE \{\textbf{Pętla 3}\}
+%			\FOR{$j=k+1$ \textbf{to} $n$}
+%				\STATE $a_{ij} \leftarrow a_{ij} - z a_{kj}$
+%    			\ENDFOR
+%    			\STATE $b_i \leftarrow b_i - z b_k$
+%    		\ENDFOR
+%    \ENDFOR
+%    \STATE \{\textbf{Pętla 4}\}
+%    \FOR{$i=n$ \textbf{to} $1$ \textbf{step} $-1$}
+%		\STATE $x_i \leftarrow (b_i - \sum^n_{j=i+1}a_{ij}x_j)/a_{ii}$
+%    \ENDFOR
+%\end{algorithmic}
+%\end{algorithm}
+
+\section{Problem kolorowania grafu}
+Niech $G = (V, E)$ będzie grafem prostym nieskierowanym o zbiorze wierzchołków $V$ i zbiorze krawędzi $E$. $k$-$kolorowanie$ grafu $G$ to taka funkcja $f : V \longrightarrow C$, gdzie $|C| = k$. $k$-$kolorowanie$ grafu $G$ jest poprawne wtedy, gdy $\forall (u, v) \in E, f(u) \neq f(v)$, czyli incydentne wierzchołki mają różne kolory. Liczba chromatyczna $\chi(G)$ zdefiniowana jest jako takie minimalne $k$, że istnieje poprawne $k$-$kolorowanie$ grafu $G$. Problem kolorowania grafu, polega na znalezieniu takiego $k$-$kolorowania$ grafu $G$, że $k = \chi(G)$. Jest on NP-trudny. Istnieje algorytm, który potrafi przybliżyć liczbę chromatyczną, działający w czasie $O(|V|(log log |V|)^2 / log(|V|)^3)$ \cite{HM}. Ponieważ problem jest NP-trudny, a algorytmy aproksymacyjne nie są zbyt efektywne do tego problemu często używa się heurystyk. 
+
+\section{Metaheurystyczne podejścia do problemu kolorowania grafu}
+W algorytmach bazujących na ACO posłużymy się "komputerowymi mrówkami", które będą komunikowały się ze sobą w celu zbudowania jak najlepszego rozwiązania. Mrówki będą poruszać się po wierzchołkach grafu podejmując lokalnie decyzje o wyborze ścieżki, wybierając z większym prawdopodobieństwem ścieżki o wyższej wartości feromonu. 
+
+Rozwiązania zaproponowane w rozpatrzonych pracach \cite{ASLSCT, Bessedik, CH, SEH} można podzielić na dwie główne kategorie: metody konstrukcyjne oraz metody ulepszające. Metody konstrukcyjne używają mrówek w celu utworzenia jak najlepszego, akceptowalnego rozwiązania. Metody ulepszające korzystają z innego algorytmu w celu utworzenia akceptowalnego rozwiązania, a następnie korzystają z mrówek, aby zminimalizować liczbę konfliktów/kolorów.  W tej pracy skupię się na metodach konstrukcyjnych. 
+
+\section{Zarys metody konstrukcyjnej}
+W metodach konstrukcyjnych informację o feromonie pomiędzy dwoma wierzchołkami przechowywać będziemy w macierzy $T_{n \times n}$, gdzie $n = |V|$, która początkowo zawiera domyślne natężenia feromonu.
+%Macierz inicjalizowana jest 
+%w nastepujący sposób:
+%$$
+%T_{v, u}=
+%\begin{cases}
+%0, & (v, u) \in E\\
+%1, & (v, u) \notin E
+%\end{cases}
+%$$
+
+Mrówki umieszczane są na wierzchołkach w zadanym statycznym porządku. Przykładami takich porządków są \cite{CH}:
+\begin{itemize}
+  \item RANDOM - wierzchołki uporządkowane losowo
+  \item LF - wierzchołki posortowane malejąco względem ich stopnia
+  \item SL - porządek $v_1, \dots , v_n$ taki, że każdy wierzchołek $v_i$ ma najmniejszy stopień w podgrafie indukowanym przez wierzchołki $v_1, \dots , v_i$.
+\end{itemize}
+
+Mrówki, aby nie kolorować jednego wierzchołka wielokrotnie, przechowują informacje odnośnie dozwolonych/niedozwolonych wierzchołków.
+
+Jedna iteracja algorytmu trwa, dopóki każda mrówka znajdzie akceptowalne rozwiązanie. W pojedynczym kroku iteracji, mrówka musi podjąć decyzję, jaki wierzchołek powinien zostać pokolorowany jako następny. Podczas iteracji $k$, gdy mrówka znajduje się w wierzchołku $v$, wybiera wierzchołek $u$ z prawdopodobieństwem $p^k_{v, u}(T)$ \cite{Bessedik}:
+\begin{equation}
+p^k_{v, u}(T)=
+\begin{cases}
+\frac{(T_{v,u})^{\alpha}  (\eta_{v,u})^{\beta}}{\sum_{l \in N_i^k} (T_{v,l})^{ \alpha}  (\eta_{v,l})^{\beta}} &, u $ jest dozwolony$\\
+0 &, u $ jest niedozwolony$
+\end{cases}
+\end{equation}
+gdzie $T_{v,u}$ oznacza natężenie feromonu pomiędzy wierzchołkami $v$ i $u$, $\eta_{v,u}$ oznacza wartość komponenty dla $v$ i $u$, $N_i^k$ jest zbiorem dozwolonych kolejnych wierzchołków, a $\alpha$ i $\beta$ zadanymi parametrami. 
+
+Po wykonaniu kroku mrówka koloruje wylosowany wierzchołek na akceptowalny kolor, zapamiętuje wierzchołek jako już pokolorowany oraz aktualizuje listę dozwolonych/niedozwolonych wierzchołków. W zależności od algorytmu wykonywana jest również lokalna aktualizacja natężenia feromonu. 
+
+W momencie gdy wszystkie mrówki znajdą akceptowalne rozwiązanie następuje globalna aktualizacja natężenia feromonu. Aby uniknąć zatrzymania w lokalnym optimum może również nastąpić wietrzenie feromonu w danej iteracji. 
+
+Algorytm powtarza się do momentu wystąpienia warunku końcowego.
+
+\section{Konkretny algorytm}
+Najważniejszym elementem algorytmu jest wybranie sposobu obliczania wartości komponenty. Sposoby te bazują na innych algorytmach, takich jak DSATUR\cite{Bessedik, CH, ASLSCT}, RLF\cite{ASLSCT, Bessedik, CH, SEH}, czy XRLF\cite{ASLSCT}.
+Postanowiłem opracować algorytm bazujący na metodzie DSATUR, w oparciu o prace \cite{Bessedik, CH}. 
+
+
+\subsection{DSATUR}
+DSATUR to zachłanny algorytm, używający dynamicznego porządkowania wierzchołków. Algorytm korzysta z pojęcia stopnia saturacji wierzchołka, zdefiniowanego jako liczba różnych kolorów w sąsiedztwie wierzchołka. Algorytm zaczyna pracę w wierzchołku o najwyższym stopniu, który kolorowany jest pierwszym kolorem. Algorytm następnie przechodzi do wierzchołka o najwyższym stopniu saturacji. Jeśli jest wiele takich wierzchołków wybierany jest wierzchołek o najwyższym stopniu. Dalsze remisy są rozwiązywane losowo. Wierzchołek do którego przechodzimy kolorowany jest na pierwszy możliwy kolor. Algorytm powtarzamy, aż cały graf zostanie pokolorowany. 
+
+Zdefiniujmy teraz konkretny algorytm, oparty na ogólnej metodzie zadanej w punkcie 4. 
+
+Mrówki zostaną rozdysponowane losowo na wierzchołki grafu. Mrówka w danej iteracji będzie przechowywać informację mówiącą, które wierzchołki nie są jeszcze pokolorowane. Wierzchołki te będą wierzchołkami dozwolonymi. Początkowe wartości feromonu zdefiniowane są w następujący sposób:
+$$
+T_{v, u}=
+\begin{cases}
+0, & (v, u) \in E\\
+1, & (v, u) \notin E
+\end{cases}
+$$
+Jako wartość komponenty przyjmujemy:
+$$
+\eta_{v,u} = dsat(u)
+$$
+Mrówka w danym kroku iteracji, z prawdopodobieństwem $q_0$ zadanym jako parametr, wybierać będzie najlepszy możliwy wierzchołek, tj. wierzchołek o najwyższym iloczynie $W_{v,u} = (T_{v,u})^{\alpha}  (\eta_{v,u})^{\beta}$. Z prawdopodobieństwem $(1 - q_0)$ mrówka wybierze wierzchołek zgodnie z regułą (1) z dozwolonych wierzchołków.
+
+Po wybraniu wierzchołka mrówka usunie go z lity dozwolonych, pokoloruje go na pierwszy możliwy kolor, a następnie  dokona lokalnej aktualizacji natężenia feromonu w następujący sposób:
+\begin{equation}
+T_{v,u} = (1 - p) T_{v,u} + T^0_{v,u} 
+\end{equation}
+gdzie $v$ to wierzchołek z którego przechodzimy, $u$ to wierzchołek na który przechodzimy, $T^0_{v,u} $ oznacza początkową wartość feromonu pomiędzy wierzchołkami $v$ i $u$, a $p$ to współczynnik trwałości feromonu.
+
+W momencie, gdy każda mrówka ukończy kolorowanie, tj. gdy zbiór dozwolonych wierzchołków każdej z mrówek będzie pusty, następuje aktualizacja najlepszego rozwiązania oraz globalna aktualizacja natężenia feromonu zgodnie ze wzorem 
+\begin{equation}
+(\forall (v_i, v_{i+1}) \in P^{*})  (T_{v_i,v_{i+1}} = \epsilon T_{v_i,v_{i+1}} + T^0_{v_i,v_{i+1}})
+\end{equation}
+,gdzie $\epsilon$ jest parametrem określającym trwałość feromonu podczas globalnej aktualizacji, a  $P^{*}$ oznacza ciąg wierzchołków pokonanych przez mrówkę, która uzyskała najlepszy wynik.
+
+ Jeśli w algorytmie nastąpiła stagnacja, tj. przez $i_e$ iteracji nie nastąpiła aktualizacja najlepszego wyniku, następuje wietrzenie feromonu zgodnie ze wzorem:
+\begin{equation}
+T_{v,u} = (1 - p) T_{v,u}
+\end{equation}
+Co więcej jeśli przez $i_r$ iteracji nie nastąpiła zmiana wyniku, algorytm zaczyna pracę od nowa. Wartości $i_e$ i $i_r$ są parametrami programu.
+Algorytm powtarza się przez $i_{max}$ iteracji.
+%W kolejnej iteracji mrówki ponownie są rozdysponowane na wierzchołki grafu zgodnie z określonym porz
+
+Parametry programu podsumowane są w poniższej tabeli:
+\begin{table}[h!]
+	\centering
+    \label{tab:table4}
+    \begin{tabular}{|c|c|P{8cm}|}
+    	\hline
+		Parametr & Dziedzina & Opis  \\ \hline \hline
+		$nants$ & $[1, 100]$ & określa rozmiar kolonii mrówek\\ \hline
+		$q_0$ & $[0, 1]$ & określa prawdopodobieństwo wybrania najlepszego wierzchołka w danym kroku iteracji\\ \hline
+		$\alpha$ & $[0, \infty]$ & określa ważność feromonu \\ \hline
+		$\beta$ & $[0, \infty]$ & określa ważność wartość komponenty \\ \hline
+		$p$ & $[0, 1]$ & określa trwałość feromonu \\ \hline
+		$\epsilon$ & $[0, 1]$ & określa trwałość feromonu podczas globalnej aktualizacji \\ \hline
+		$i_e$ & $[1, \infty]$ & określa ilość iteracji bez lepszego wyniku potrzebną do wykonania wietrzenia feromonu \\ \hline
+		$i_r$ & $[1, \infty]$ & określa ilość iteracji bez lepszego wyniku potrzebną do zresetowania algorytmu\\ \hline
+		$i_{max}$ & $[1, \infty]$ & określa maksymalną liczbę iteracji\\ \hline
+    \end{tabular}
+	\caption{Parametry programu}
+\end{table}
+
+Pseudokod algorytmu:
+\begin{algorithm} % enter the algorithm environment
+\label{alg2} % and a label for \ref{} commands later in the document
+\caption{}
+\begin{algorithmic} % enter the algorithmic environment
+	\STATE ants = initAnts()
+	\FOR{i in 1:nants}
+    	\WHILE{ $(\exists ant)(ant.uncoloredV \neq \emptyset)$}
+    		\FOR{ant in ants}
+    			\IF{$ant.uncoloredV \neq \emptyset$}
+    				\IF{rand() $<$ $q_0$}
+    					\STATE $vnext = x \in ant.uncoloredV$, gdzie $W_{ant.current, x}$ jest maksymalne
+					\ELSE    				
+    					\STATE $vnext = x \in ant.uncoloredV$, wylosowane zgodnie z (1)
+    				\ENDIF
+    				\STATE $ant.solution[vnext]$ = pierwszy możliwy kolor
+    				\STATE aktualizacja feromonu zgodnie z (2)
+    				\STATE $ant.uncoloredV = ant.uncoloredV - \{ant.vnext\}$
+    				\STATE $ant.current = vnext$
+    			\ENDIF
+    		\ENDFOR
+    	\ENDWHILE
+    	\STATE $best\_color$ =  najlepsze kolorowanie
+    	\STATE $best\_cost$ =  najlepszy koszt
+    	\STATE $best\_path$ =  ścieżka najlepszego kolorowania
+    	\STATE aktualizacja feromonu zgodnie z (3)
+		\STATE ants = initAnts()
+    	\IF{to samo rozwiązanie od $i_e$ iteracji}
+    		\STATE wietrzenie feromonu zgodnie z (4)
+    	\ENDIF
+    	\IF{to samo rozwiązanie od $i_r$ iteracji}
+    		\STATE uruchom algorytm od nowa, zapamiętując najlepszy wynik
+    	\ENDIF
+    \ENDFOR
+    \RETURN{$best\_color$, $best\_cost$}
+\end{algorithmic}
+\end{algorithm}
+
+\newpage
+%\subsection{RLF}
+%RLF to algorytm, który koloruje wierzchołki grafu sekwencyjnie, tj. najpierw koloruje klasę grafu $C_k$ na kolor $k$, po czym przechodzi do kolejnej klasy $C_{k+1}$. Tworzenie klasy koloru opiera się na dwóch zbiorach $U$ - zbiorze możliwych do pokolorowania wierzchołków, $W$ - zbiorze (początkowo pustym) niepokolorowanych wierzchołków, z choć jednym sąsiadem w $C$. Algorytm RLF korzysta z dwóch dodatkowych definicji: $deg_U(v)$ i $deg_W(v)$ oznaczają kolejno liczbę sąsiadów wierzchołka $v$ w zbiorach $U$ i $W$. Algorytm korzysta z wartości $deg_U(v)$ i $deg_W(v)$ w celu wyboru kolejnych wierzchołków do przejścia. Szczegółowy opis algorytmu dostępny jest w \cite{AMHABM, LF}. Poniżej skupię się na aspektach ważnych dla podejścia metaheurystycznego.
+%
+%Algorytm oparty na RLF będzie analogiczny do tego opartego na DSATUR. Jedyne różnice wystąpią w pamiętanych przez mrówkę dozwolonych ruchach oraz w definicji wartości komponenty. Mrówka będzie posługiwać się trzema następującymi zbiorami:
+%\begin{itemize}
+%	\item $UC$ - zbiór niepokolorowanych wierzchołków
+%	\item $U$ - zbiór możliwych do pokolorowania wierzchołków na aktualnie rozpatrywany kolor (jak wyżej)
+%	\item $W$ - zbiór niemożliwych do pokolorowania wierzchołków na aktualnie rozpatrywany kolor (jak wyżej)
+%\end{itemize}
+%Zbiory będą na bieżąco aktualizowane. Wartość komponenty zdefiniowana jest następująco:
+%\begin{equation}
+%\eta_{v,u}=
+%\begin{cases}
+%deg_W(u) &, U = \emptyset\\
+%deg_U(v) &, U \neq \emptyset
+%\end{cases}
+%\end{equation}
+%Reszta algorytmu pozostaje bez zmian.
+
+\section{Testy}
+Algorytm został zaimplementowany w języku Julia. Początkowe testy wykonywałem na grafach o niewielkiej liczbie  wierzchołków ($<50$), grafach wielodzielnych (multipartite graph) oraz grafach zbliżonych do nich. Algorytm bezproblemowo odnajdywał optimum w niewielkiej liczbie iteracji. W celu utrudnienia kolejne testy rozpatrzyłem na grafach DIMAC\cite{DIMAC}, których liczby chromatyczne są trudne do oszacowania oraz mających wiele krawędzi. Wyniki przedstawia następująca tabela (opt oznacza najniższą odkrytą do tej pory liczbę chromatyczną, LF oznacza algorytm zachłanny bazujący na porządku LF) :
+
+\begin{adjustbox}{center}
+%\begin{table}[h!]
+%    \label{tab:table5}
+\footnotesize
+    \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+    	\hline
+		$|V|$ & $|E|$ & $nants$ & $q_0$ & $\alpha$ & $\beta$ & $p$ & $\epsilon$ & $i_e$ &$i_r$ & $i_{max}$ & ACODSAT  & LF & opt \\ \hline \hline
+		500 & 62624 & 40 & 0.5 & 2 & 4 & 0.5 & 0.35 & 5 & 10 & 5 & 67 & 71 & ?? \\ \hline
+		500 & 62624 & 40 & 0.5 & 2 & 4 & 0.5 & 0.35 & 5 & 10 & 15 & 66 & 71 & ?? \\ \hline  \hline
+		250 & 31336 & 40 & 0.5 & 2 & 4 & 0.5 & 0.35 & 5 & 10 & 5 & 38 & 41 & ?? \\ \hline
+		250 & 31336 & 40 & 0.5 & 2 & 4 & 0.5 & 0.35 & 5 & 10 & 15 & 37 & 41 & ?? \\ \hline  \hline
+		250 & 14849 & 40 & 0.5 & 2 & 4 & 0.5 & 0.35 & 5 & 10 & 5 & 68 & 70 & 65 \\ \hline
+		250 & 14849 & 40 & 0.5 & 2 & 4 & 0.5 &  0.35 & 5 & 10 & 15 & 67 & 70 & 65 \\ \hline \hline
+%		500 & 121275 & 40 & 0.5 & 2 & 4 & 0.5 & 0.35 & 5 & 10 & 5 & 96 & 96 & 100 & 84 \\ \hline
+%		500 & 121275 & 40 & 0.5 & 2 & 4 & 0.5 &  0.35 & 5 & 10 & 15 & 96 & 96 & 100 & 84 \\ \hline \hline
+		500 & 58862 & 40 & 0.5 & 2 & 4 & 0.5 & 0.35 & 5 & 10 & 5 & 128 & 134 & 122 \\ \hline
+		500 & 58862 & 40 & 0.5 & 2 & 4 & 0.5 &  0.35 & 5 & 10 & 15 & 127 & 134 & 122 \\ \hline \hline
+		1000 & 238267 & 40 & 0.5 & 2 & 4 & 0.5 & 0.35 & 5 & 10 & 5 & 248 & 259 & 234 \\ \hline
+		1000 & 238267 & 40 & 0.5 & 2 & 4 & 0.5 &  0.35 & 5 & 10 & 15 & 247 & 259 & 234 \\ \hline \hline \hline
+		
+		500 & 62624 & 40 & 0.5 & 4 & 4 & 0.7 & 0.8 & 2 & 5 & 5 & 67 & 71 & ?? \\ \hline
+		500 & 62624 & 40 & 0.5 & 4 & 4 & 0.7 & 0.8 & 2 & 5 & 15 & 67 & 71 & ?? \\ \hline  \hline
+		250 & 31336 & 40 & 0.5 & 4 & 4 & 0.7 & 0.8 & 2 & 5 & 5 & 38 & 41 & ?? \\ \hline
+		250 & 31336 & 40 & 0.5 & 4 & 4 & 0.7 & 0.8 & 2 & 5 & 15 & 37 & 41 & ?? \\ \hline  \hline
+		250 & 14849 & 40 & 0.5 & 4 & 4 & 0.7 & 0.8 & 2 & 5 & 5 & 68 & 70 & 65 \\ \hline
+		250 & 14849 & 40 & 0.5 & 4 & 4 & 0.7 &  0.8 & 2 & 5 & 15 & 68 & 70 & 65 \\ \hline \hline
+		500 & 58862 & 40 & 0.5 & 4 & 4 & 0.7 & 0.8 & 2 & 5 & 5 & 129 & 134 & 122 \\ \hline
+		500 & 58862 & 40 & 0.5 & 4 & 4 & 0.7 &  0.8 & 2 & 5 & 15 & 127 & 134 & 122 \\ \hline
+		
+    \end{tabular}
+%	\caption{Wyniki testów}
+%\end{table}
+\end{adjustbox}
+
+\section{Obserwacje i wnioski}
+Algorytm oszacował liczbę chromatyczną lepiej niż standardowy algorytm zachłanny.  Testy podzieliłem na dwie części: w pierwszej części znajdują się parametry powodujące że natężenie feromonu gra mniejszą rolę (eksploracja), w drugiej większą (eksploatacja). Algorytm sprawdził się lepiej dla pierwszego przypadku, choć różnice były znikome. Algorytm testowałem dla różnych wartości parametrów. Parametry umieszczone w tabeli okazały się najkorzystniejsze, zatem są one jednocześnie parametrami rekomendowanymi. Główną trudnością algorytmu jest jego wysoka złożoność obliczeniowa. Choć standardowy algorytm DSATUR ma teoretyczną złożoność obliczeniową $O(n^2)$, w naszym wypadku występuje jednak szereg innych czynników, wpływających na wyższą złożoność. Czynnikami tymi są na przykład konieczność budowania macierzy natężenia feromonu oraz ciągłej jej aktualizacji czy skomplikowany proces wyboru kolejnego wierzchołka.
+
+Algorytmy omówione w cytowanych pracach\cite{ASLSCT, Bessedik, CH, SEH} różnią się głównie metodą obliczania wartości komponenty oraz sposobem umieszczania mrówek na wierzchołkach. W poszukiwaniu rozwiązania o najniższym koszcie, rozważyłem metody losowego rozmieszczania mrówek (RANDOM) oraz według stopni wierzchołków (LF). Algorytm oparty na RANDOM okazał się nieznacznie lepszy. Rozważyłem również użycie metody RLF do obliczania wartości komponenty, jednak na danych testowych osiągała one wartości niewiele gorsze niż DSATUR, choć w ogólnym przypadku zazwyczaj bywa odwrotnie. Argumentem przemawiającym za metodą DSATUR była również niższa złożoność obliczeniowa - algorytm RLF ma złożoność wynoszącą  $O(n^3)$\cite{LF}, co staje się zauważalne przy rozpatrywaniu grafów o dużej liczbie wierzchołków.
+
+
+%Oba algorytmy oszacowały liczby chromatyczne lepiej niż standardowy algorytm zachłanny. Testy podzieliłem na dwie części: w pierwszej części ustawione są parametry powodujące że natężenie feromonu gra mniejszą rolę (eksploracja), w drugiej większą (eksploatacja). Algorytm sprawdził się lepiej dla pierwszego przypadku, choć różnice były znikome. Algorytm testowałem dla różnych wartości parametrów. Parametry umieszczone w tabeli okazały się najkorzystniejsze, zatem są one jednocześnie parametrami rekomendowanymi. Główną trudnością algorytmu jest jego wysoka złożoność obliczeniowa. Standardowy algorytm RLF ma złożoność obliczeniową $O(n^3)$\cite{LF}. W omawianym algorytmie dodatkowo dochodzi konieczność budowania macierzy natężenia feromonu oraz ciągłej jej aktualizacji. Proces wyboru kolejnego wierzchołka również jest bardziej skomplikowany ze względu na konieczność uwzględnienia natężenia feromonu. Dla zastosowań, w których czas działania jest mocno ograniczony, warto rozważyć użycie algorytmu aproksymacyjnego, ponieważ algorytm metaheurystyczny może nie zdążyć "rozwinąć się" w pełni.
+
+\newpage
+\bibliography{referatbib}{}
+\bibliographystyle{ieeetr}
+
+
+
+\end{document}
